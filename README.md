@@ -1,20 +1,22 @@
-BrAPI in a docker
-=================
+BrAPIMapper
+===========
 
-Version: Alpha 1
+Version: Beta 1
 Date:    10/2023
 
 
 Usage
 -----
+
 Start the service:
-# docker compose up
+```
+  # docker compose up
+```
 
 Stop the service:
-# docker compose down
-
-Cleanup memory in case of crash or manual stop using Ctrl+C:
-# docker container prune -f
+```
+  # docker compose down
+```
 
 The BrAPI service is available on port 8080. The administration interface is
 available on port 8642.
@@ -25,7 +27,7 @@ Please change that default password once you got in!
 
 Architecture
 ------------
-BrAPI in a docker is using a set of 3 dockers managed by "docker compose":
+BrAPIMapper is using a set of 3 dockers managed by "docker compose":
 - proxy: it uses the "nginx" container image to manage access to the BrAPI
   docker. It exposes 2 ports: 80 for BrAPI services (/brapi/v1/ and /brapi/v2/
   URLs) and 8642 for both Drupal/administration interface and BrAPI services.
@@ -38,7 +40,8 @@ BrAPI in a docker is using a set of 3 dockers managed by "docker compose":
   The brapi docker includes PHP-FPM and a pre-configured Drupal CMS with
   extensions.
 
-The docker compose file provides the "glue" between those 3 dockers.
+The docker compose file ("docker-compose.yml") provides the "glue" between those
+3 dockers.
 2 ports are exposed: 8080 (BrAPI services) and 8642 (admin interface).
 Database storage is made persistent with volume mapping: persistent PostgreSQL
 data files are stored in "./data/pgdata".
@@ -52,14 +55,16 @@ Configuration
 
 The "brapi.env" file contains initial settings and can be modified before the
 first run of the container. After the first run, some changes may not be
-possible (ie. not taken into account) or can prevent the BrAPI system from
-running, so change with care.
+possible (ie. not taken into account) or can prevent BrAPIMapper from running,
+so change with care.
 
 The first time "BrAPI in a docker" is started, it will create persistent data
 directories and provide initial config files that can be later customized. It
 will pre-install and configure Drupal CMS and download extensions which will
 take a couple of seconds/minutes. The next times, it will be faster as no
-such things would be required anymore.
+such things would be required anymore. However, if you let enabled the
+auto-update feature (see "brapi.env"), the Drupal CMS and its module may also
+get updated from times to times when you restart BrAPIMapper.
 
 All Drupal-specific files are stored in the "./drupal" directory.
 
@@ -75,6 +80,26 @@ Custom files (not directly accessible through the nginx proxy) can be stored in
 NGINX proxy config can be modified in "./proxy/brapi-fpm.conf".
 
 PHP config (php.ini) can be modified in "/opt/drupal/php/php.ini".
+
+"Trusted Host Settings": this setting depends on the (public) server name
+hosting the docker. It's a set of regular expression that can be used to match
+the possible server names. It is set in
+"./drupal/drupal/sites/default/settings.php".
+
+Each time you update a config file, you will also need to restart BrAPIMapper in
+order to have the changes taking effects.
+
+
+Management
+----------
+
+Remove config and reinstall BrAPIMapper:
+```
+  # docker compose down
+  # docker volume rm docker_drupal-volume
+  # sudo rm -rf data drupal php
+  # docker compose up
+```
 
 
 Maintainers

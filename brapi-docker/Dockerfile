@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libpq-dev \
     zip \
+    git \
+    wget \
+    vim \
     sendmail \
     postgresql \
     libwebp-dev \
@@ -44,8 +47,19 @@ RUN echo "sendmail_path=/usr/sbin/sendmail -t -i" >> /usr/local/etc/php/conf.d/s
 # Cleanup.
 RUN rm -rf /var/lib/apt/lists/*
 
+# Environment.
+ENV POSTGRES_HOST=db
+ENV POSTGRES_PORT=5432
+ENV POSTGRES_DRUPAL_DB=drupal
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_PASSWORD="pgBr4P!_D0cker"
+ENV DRUPAL_TRUSTED_HOST=""
+ENV DRUPAL_USER=brapi
+ENV DRUPAL_PASSWORD="Br4P!_D0cker"
+ENV DRUPAL_AUTO_UPDATE=1
+
 # Prepare Postges access.
-RUN echo 'db:5432:*:postgres:pgBr4P!_D0cker' >~/.pgpass \
+RUN echo "$POSTGRES_HOST:$POSTGRES_PORT:*:$POSTGRES_USER:$POSTGRES_PASSWORD" >~/.pgpass \
   && chmod go-rwx ~/.pgpass
 
 # Set PHP settings.
@@ -59,20 +73,8 @@ RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
 # Provide Drupal setting file for external databases.
 COPY ./external_dbs.template.php external_dbs.template.php
 
-# Setup cron.
-RUN crontab -l | { cat; echo "10 * * * * /usr/bin/env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin COLUMNS=72 /opt/drupal/vendor/drush/drush/drush --root=/opt/drupal/web --uri=brapi --quiet cron"; } | crontab -
-
-# Environment.
-ENV POSTGRES_HOST="db"
-ENV POSTGRES_PORT="5432"
-ENV POSTGRES_DRUPAL_DB="drupal"
-ENV POSTGRES_USER="postgres"
-ENV POSTGRES_PASSWORD="pgBr4P!_D0cker"
-ENV DRUPAL_TRUSTED_HOST="'localhost','127\.0\.0\.1'"
-ENV DRUPAL_USER="brapi"
-ENV DRUPAL_PASSWORD="Br4P!_D0cker"
-
-# Init script.
+# Init scripts.
+COPY ./init_site.php init_site.php
 COPY ./init.sh init.sh
 RUN chmod u+rx init.sh
 CMD ./init.sh

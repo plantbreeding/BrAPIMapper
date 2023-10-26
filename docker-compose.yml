@@ -1,15 +1,11 @@
-# BrAPI
+# BrAPIMapper docker compose file
 #
 # Run with "docker compose up"
 # Stop with "docker compose down"
 #
-# Access via "http://localhost:8080"
-#   (or "http://$(docker-machine ip):8080" if using docker-machine)
+# Access through "http://localhost:8642" and "http://localhost:8080/brapi/v..."
+#   (or "http://$(docker-machine ip):8642" if using docker-machine)
 #
-# Database name: drupal
-# Database username: postgres
-# Database password: pgBr4P!_D0cker
-# fpm port: 9000
 
 version: '3.4'
 
@@ -29,6 +25,7 @@ services:
       - ./drupal/config:/opt/drupal/config
       - ./drupal/private:/opt/drupal/private
       - ./drupal/sites/default:/opt/drupal/web/sites/default
+      - ./drupal/drupal:/opt/drupal/exposed
       - ./php:/opt/drupal/php
     depends_on:
       - db

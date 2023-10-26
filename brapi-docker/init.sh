@@ -28,6 +28,7 @@ if [ ! -e ./web/modules/contrib/brapi ]; then
     && composer -n require drupal/xntttsv \
     && composer -n require drupal/xnttxml \
     && composer -n require drupal/xnttyaml \
+    && composer -n require drupal/chadol \
     && composer -n require drupal/gbif2 \
     && composer -n require drupal/xnttviews
   # @todo: add other modules...
@@ -40,7 +41,7 @@ fi
 # Check if the database is already initialized.
 # Wait for database ready (3 minutes max).
 loop_count=0
-while ! pg_isready -h $POSTGRES_HOST -p $POSTGRES_PORT  && [[ "$loop_count" -lt 180 ]]; do
+while ! pg_isready -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER && [[ "$loop_count" -lt 180 ]]; do
   echo "."
   loop_count=$((loop_count+1))
   sleep 1
@@ -51,7 +52,7 @@ if [[ "$loop_count" -ge 180 ]]; then
 fi
 echo "Database seems ready."
 
-if [ "$( psql -h $POSTGRES_HOST -U $POSTGRES_USER -XtAc "SELECT 1 FROM pg_database WHERE datname='$POSTGRES_DRUPAL_DB';" )" = '1' ]; then
+if [ "$( psql -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -XtAc "SELECT 1 FROM pg_database WHERE datname='$POSTGRES_DRUPAL_DB';" )" = '1' ]; then
   # Database already initialized.
   echo "Database already initialized."
 else
@@ -67,7 +68,7 @@ else
     cp ./web/sites/default/default.settings.php ./web/sites/default/settings.php
     # Append some settings.
     echo -e "\n\$settings['config_sync_directory'] = '../config/sync';\n\$settings['file_private_path'] = '/opt/drupal/private/';\n" >>./web/sites/default/settings.php
-    echo -e "\n$settings['trusted_host_patterns'] = [$DRUPAL_TRUSTED_HOST];\n" >>./web/sites/default/settings.php
+    echo -e "\n\$settings['trusted_host_patterns'] = [$DRUPAL_TRUSTED_HOST];\n" >>./web/sites/default/settings.php
     # Append auto-include for external databases settings in "external_dbs.php".
     echo -e "\n\nif (file_exists(\$app_root . '/' . \$site_path . '/external_dbs.php')) {\n  include \$app_root . '/' . \$site_path . '/external_dbs.php';\n}\n" >>./web/sites/default/settings.php
   fi
@@ -96,21 +97,26 @@ else
     --account-name=brapi \
     --account-pass="$DRUPAL_PASSWORD" \
     --site-mail="brapi@localhost" \
-    --site-name="BrAPI Docker Beta 1"
+    --site-name="BrAPIMapper Beta 1"
 
   # Other config stuff.
   chmod -R uog+w ./private ./config ./web/sites/default/files
-  
+
   echo "...Drupal setup done."
 
   echo "Setup Drupal extensions..."
   # Enable modules.
-  ./vendor/drush/drush/drush -y pm-enable dbxschema_pgsql dbxschema_mysql xnttdb brapi
+  ./vendor/drush/drush/drush -y pm-enable token imagecache_external dbxschema_pgsql dbxschema_mysql xnttdb chadol xnttjson xnttmanager xnttmulti xnttbrapi brapi layout_builder
   echo "...Drupal extensions setup done."
+
+  echo "Setup BrAPI site..."
+  ./vendor/drush/drush/drush -y php:script ./init_site.php
+  echo "...BrAPI site setup done."
 
 fi
 
-# Update PHP config.
+echo "Synchronizing host config..."
+# Synchronize PHP config.
 if [[ ! -e ./php ]] || [[ ! -e ./php/php.ini ]]; then
   # First time, copy PHP settings on a mountable volume.
   mkdir -p ./php
@@ -120,10 +126,29 @@ else
   cp ./php/php.ini "$PHP_INI_DIR/php.ini"
 fi
 
+# Synchronize Composer settings.
+if [[ ! -e ./exposed ]]; then
+  mkdir -p ./exposed
+fi
+# First time, copy config files on a mountable volume.
+# If config files exist in volume, replace container files with exposed ones.
+for cfile in composer.json composer.lock ; do
+  if [[ ! -e ./exposed/$cfile ]]; then
+    cp $cfile ./exposed/$cfile
+  fi
+  rm $cfile
+  ln -s exposed/$cfile $cfile
+done
+echo "... done synchronizing host."
+
 # TODO: Auto-update Drupal and modules.
-# if...
-# composer update --with-all-dependencies
-# ./vendor/drush/drush/drush -y updb
+if [ $DRUPAL_AUTO_UPDATE -gt 0 ]; then
+  echo "Auto-updating Drupal..."
+  # @todo: backup DB and restore if errors.
+  composer update --with-all-dependencies
+  ./vendor/drush/drush/drush -y updb
+  echo "...Drupal Auto-update done."
+fi
 
 # Launch PHP-fpm
 php-fpm
