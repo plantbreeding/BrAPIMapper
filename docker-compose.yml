@@ -18,7 +18,10 @@ services:
   brapi:
     # image: guignon:brapi4.0.0beta3-drupal10.1.2-php8.2-fpm-bookworm
     image: brapi
+    env_file:
+      - 'brapi.env'
     volumes:
+      - drupal-volume:/opt/drupal
       - ./drupal/modules:/opt/drupal/web/modules
       - ./drupal/profiles:/opt/drupal/web/profiles
       - ./drupal/themes:/opt/drupal/web/themes
@@ -36,20 +39,25 @@ services:
     ports:
       - 8080:80
       - 8642:8642
+    env_file:
+      - 'brapi.env'
     volumes:
       - type: bind
         source: ./proxy/brapi-fpm.conf
         target: /etc/nginx/conf.d/default.conf
         read_only: true
+      - drupal-volume:/opt/drupal
     depends_on:
       - brapi
     restart: always
 
   db:
     image: postgres:15
-    environment:
-      POSTGRES_PASSWORD: pgBr4P!_D0cker
-      PGDATA: /var/lib/postgresql/data/pgdata
+    env_file:
+      - 'brapi.env'
     volumes:
       - ./data/pgdata:/var/lib/postgresql/data
     restart: always
+
+volumes:
+  drupal-volume:

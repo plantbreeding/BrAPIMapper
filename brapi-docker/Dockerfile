@@ -57,9 +57,20 @@ RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
   && perl -pi -e 's/^upload_max_filesize\s*=.*/upload_max_filesize = 256M/g' "$PHP_INI_DIR/php.ini"
 
 # Provide Drupal setting file for external databases.
-COPY ./external_dbs.php external_dbs.php
+COPY ./external_dbs.template.php external_dbs.template.php
 
+# Setup cron.
+RUN crontab -l | { cat; echo "10 * * * * /usr/bin/env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin COLUMNS=72 /opt/drupal/vendor/drush/drush/drush --root=/opt/drupal/web --uri=brapi --quiet cron"; } | crontab -
+
+# Environment.
+ENV POSTGRES_HOST="db"
+ENV POSTGRES_PORT="5432"
+ENV POSTGRES_DRUPAL_DB="drupal"
+ENV POSTGRES_USER="postgres"
+ENV POSTGRES_PASSWORD="pgBr4P!_D0cker"
 ENV DRUPAL_TRUSTED_HOST="'localhost','127\.0\.0\.1'"
+ENV DRUPAL_USER="brapi"
+ENV DRUPAL_PASSWORD="Br4P!_D0cker"
 
 # Init script.
 COPY ./init.sh init.sh

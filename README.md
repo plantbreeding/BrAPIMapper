@@ -50,6 +50,11 @@ and uploads.
 Configuration
 -------------
 
+The "brapi.env" file contains initial settings and can be modified before the
+first run of the container. After the first run, some changes may not be
+possible (ie. not taken into account) or can prevent the BrAPI system from
+running, so change with care.
+
 The first time "BrAPI in a docker" is started, it will create persistent data
 directories and provide initial config files that can be later customized. It
 will pre-install and configure Drupal CMS and download extensions which will
