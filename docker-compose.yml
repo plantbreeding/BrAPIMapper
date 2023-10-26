@@ -13,7 +13,7 @@ services:
 
   brapi:
     # image: guignon:brapi4.0.0beta3-drupal10.1.2-php8.2-fpm-bookworm
-    image: brapi
+    image: guignon/brapi:beta1
     env_file:
       - 'brapi.env'
     volumes:
