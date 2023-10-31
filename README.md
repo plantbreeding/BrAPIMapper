@@ -10,7 +10,7 @@ Usage
 
 Start the service:
 ```
-  # docker compose up
+  # docker compose up -d
 ```
 
 Stop the service:
@@ -58,7 +58,7 @@ first run of the container. After the first run, some changes may not be
 possible (ie. not taken into account) or can prevent BrAPIMapper from running,
 so change with care.
 
-The first time "BrAPI in a docker" is started, it will create persistent data
+The first time "BrAPIMapper" is started, it will create persistent data
 directories and provide initial config files that can be later customized. It
 will pre-install and configure Drupal CMS and download extensions which will
 take a couple of seconds/minutes. The next times, it will be faster as no
@@ -98,7 +98,7 @@ Remove config and reinstall BrAPIMapper:
   # docker compose down
   # docker volume rm docker_drupal-volume
   # sudo rm -rf data drupal php
-  # docker compose up
+  # docker compose up -d
 ```
 
 
